@@ -56,6 +56,7 @@ re_whitespace_style = re.compile(
 re_whitespace_style2 = re.compile(
     'for(\s*)\(\s*i\s+in\s0(\s*)\.\.\.(\s*)5\)')
 re_brace_style = re.compile('\}([\s\n]*)else([\s\n]*)\{')
+re_brace_style2 = re.compile('methodOrClass([\s\n]*)\{')
 
 style_map = None
 num_tries = 0
@@ -103,6 +104,7 @@ class HaxeFormat(sublime_plugin.EventListener):
         self.ws = None
         self.ws2 = None
         self.bs = None
+        self.bs2 = None
         self.settings = None
         self.init()
 
@@ -150,14 +152,17 @@ class HaxeFormat(sublime_plugin.EventListener):
             self.settings.add_on_change(
                 'haxe_brace_style',
                 lambda: self.update_brace_style(self.settings))
+            self.settings.add_on_change(
+                'haxe_brace_style2',
+                lambda: self.update_brace_style2(self.settings))
 
         self.update_whitespace_style(self.settings)
         self.update_whitespace_style2(self.settings)
         self.update_brace_style(self.settings)
+        self.update_brace_style2(self.settings)
 
     def update_brace_style(self, settings):
         global style_map
-
         def_style = '} else {'
         style = settings.get('haxe_brace_style', def_style)
         if style is None:
@@ -173,6 +178,27 @@ class HaxeFormat(sublime_plugin.EventListener):
             style_map['HX_CCB_W'] = mo.group(1)  # }_
             style_map['HX_W_OCB'] = mo.group(2)  # _{
 
+            self.mark()
+
+    def update_brace_style2(self, settings):
+        global style_map
+
+        def_style = 'methodOrClass\n{'
+        style = settings.get('haxe_brace_style2', def_style)
+        if style is None:
+            return
+
+        if self.bs2 is None or self.bs2 != style:
+            self.bs2 = style
+
+            mo = re_brace_style2.search(style)
+            if mo is None:
+                mo = re_brace_style2.search(def_style)
+
+            opt = mo.group(1);
+
+            style_map['HX_CCB_W2'] = opt # _{
+            style_map['HX_CCB_I'] = opt if not '\n' in opt else opt + '\t';
             self.mark()
 
     def update_whitespace_style(self, settings):
